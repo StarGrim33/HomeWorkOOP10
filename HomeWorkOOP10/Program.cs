@@ -5,15 +5,12 @@
         static void Main(string[] args)
         {
             Battlefield battlefield = new();
-
             battlefield.Run();
         }
     }
 
     class Battlefield
     {
-        private List<Soldier> _natoArmy = new List<Soldier>();
-        private List<Soldier> _ecArmy = new List<Soldier>();
         private ArmyBuilder _armyBuilder = new ArmyBuilder();
 
         public void Run()
@@ -49,7 +46,6 @@
 
         private void StartBattle()
         {
-            Random random = new();
             int maxSoldiers = 10;
             Army nato = _armyBuilder.Build(maxSoldiers, "НАТО");
             Army easternCoalition = _armyBuilder.Build(maxSoldiers, "Восточная коалиция");
@@ -58,6 +54,7 @@
             Console.ReadLine();
 
             nato.Show();
+            Console.WriteLine("");
             easternCoalition.Show();
 
             Console.WriteLine($"{new string('-', 25)}");
@@ -73,6 +70,7 @@
                 easternCoalition.Heal();
 
                 Console.Clear();
+
                 nato.Show();
                 easternCoalition.Show();
 
@@ -199,48 +197,6 @@
             int randomIndex = random.Next(soldiers.Count);
             Soldier soldier = soldiers[randomIndex];
             return soldier;
-        }
-    }
-
-    class EasternCoalition
-    {
-        private List<Soldier> _soldiers = new(10);
-        private List<Soldier> _barracks = new();
-
-        public EasternCoalition(string name)
-        {
-            Name = name;
-
-            _barracks = new List<Soldier>
-            {
-                new MachineGunner(),
-                new MortarMan(),
-                new Stormtrooper(),
-                new Scout(),
-                new Medic()
-            };
-        }
-
-        public string Name { get; private set; }
-
-        public List<Soldier> FormArmy(List<Soldier> soldier)
-        {
-            Random random = new Random();
-
-            while (soldier.Count < 10)
-            {
-                soldier.Add(_barracks[random.Next(_barracks.Count)]);
-            }
-
-            return soldier;
-        }
-
-        public void ShowArmy()
-        {
-            foreach (Soldier soldier in _soldiers)
-            {
-                Console.WriteLine($"{soldier.Name}, здоровье: {soldier.Health}, урон: {soldier.Damage}");
-            }
         }
     }
 
