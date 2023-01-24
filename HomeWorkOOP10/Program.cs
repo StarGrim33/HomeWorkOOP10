@@ -16,7 +16,7 @@
         public void Run()
         {
             const string CommandStartBattle = "1";
-            const string CommandExit = "2";
+            const string CommandExit = "3";
 
             Console.WriteLine($"Приветствуем Вас на поле боя!\n");
             Console.WriteLine($"{CommandStartBattle}-Начать бой");
@@ -47,43 +47,47 @@
         private void StartBattle()
         {
             int maxSoldiers = 10;
-            Army nato = _armyBuilder.Build(maxSoldiers, "НАТО");
-            Army easternCoalition = _armyBuilder.Build(maxSoldiers, "Восточная коалиция");
+            Army firstArmy = _armyBuilder.Build(maxSoldiers, "НАТО");
+            Army secondArmy = _armyBuilder.Build(maxSoldiers, "Восточная коалиция");
 
             Console.WriteLine("Армии стран сформированы, нажмите любую клавишу");
             Console.ReadLine();
 
-            nato.Show();
+            firstArmy.Show();
             Console.WriteLine("");
-            easternCoalition.Show();
+            secondArmy.Show();
 
             Console.WriteLine($"{new string('-', 25)}");
             Console.ReadKey();
 
-            while (nato.HasAliveSoldiers && easternCoalition.HasAliveSoldiers)
+            while (firstArmy.HasAliveSoldiers && secondArmy.HasAliveSoldiers)
             {
-                nato.Attack(easternCoalition);
-                easternCoalition.Attack(nato);
-                nato.RemoveDead();
-                easternCoalition.RemoveDead();
-                nato.Heal();
-                easternCoalition.Heal();
+                firstArmy.Attack(secondArmy);
+                secondArmy.Attack(firstArmy);
+                firstArmy.RemoveDead();
+                secondArmy.RemoveDead();
+                firstArmy.Heal();
+                secondArmy.Heal();
 
                 Console.Clear();
 
-                nato.Show();
-                easternCoalition.Show();
+                firstArmy.Show();
+                secondArmy.Show();
 
                 Console.ReadKey();
             }
 
-            if (nato.HasAliveSoldiers)
+            if (firstArmy.HasAliveSoldiers)
             {
-                Console.WriteLine($"Победила армия: {nato.Name}");
+                Console.WriteLine($"Победила армия: {firstArmy.Name}");
+            }
+            else if(secondArmy.HasAliveSoldiers)
+            {
+                Console.WriteLine($"Победила армия: {secondArmy.Name}");
             }
             else
             {
-                Console.WriteLine($"Победила армия: {easternCoalition.Name}");
+                Console.WriteLine("Ничья");
             }
 
             Console.ReadKey();
@@ -117,9 +121,11 @@
 
         public void Attack(Army army)
         {
+            var soldier = GetRandomSoldier();
+
             for (int i = 0; i < _soldiers.Count; i++)
             {
-                army.TakeDamage(_soldiers[i]);
+                army.TakeDamage(_soldiers[i], soldier);
             }
         }
 
@@ -131,11 +137,9 @@
             return _soldiers[_random.Next(_soldiers.Count)];
         }
 
-        public void TakeDamage(Soldier enemy)
+        public void TakeDamage(Soldier enemy, Soldier soldier)
         {
-            var soldier = GetRandomSoldier();
-
-            if(soldier == null)
+            if (soldier == null)
                 return;
 
             enemy.Attack(soldier);
@@ -195,8 +199,7 @@
             Random random = new Random();
             var soldiers = CreateSoldiers();
             int randomIndex = random.Next(soldiers.Count);
-            Soldier soldier = soldiers[randomIndex];
-            return soldier;
+            return soldiers[randomIndex];      
         }
     }
 
@@ -217,7 +220,7 @@
 
         public virtual void Attack(Soldier soldier)
         {
-            soldier.Health -= Damage;
+            soldier.TakeDamage(Damage);
         }
 
         public void ShowInfo()
@@ -230,7 +233,7 @@
             Health -= Damage;
         }
 
-        public void Heal(int health)
+        public void TakeHeal(int health)
         {
             Health += health;
 
@@ -271,11 +274,13 @@
 
     class MortarMan : Soldier
     {
+        private int _chance = 15;
+
         public MortarMan() : base(60)
         {
             Name = "Минометчик";
             Damage = 40;
-            Spell = "С вероятностью 15% наносит двойной урон противнику";
+            Spell = "С вероятностью" + _chance + "% наносит двойной урон противнику";
         }
 
         public override void Attack(Soldier soldier)
@@ -303,11 +308,13 @@
 
     class Stormtrooper : Soldier
     {
+        private int _chance = 20;
+
         public Stormtrooper() : base(130)
         {
             Name = "Штурмовик";
             Damage = 25;
-            Spell = "С вероятностью 20% кидает гранату, которая наносит 60 ед. урона";
+            Spell = "С вероятностью" + _chance + "% кидает гранату, которая наносит 60 ед. урона";
         }
 
         public override void Attack(Soldier soldier)
@@ -315,7 +322,7 @@
             Random random = new();
             int grenadeDamage = 60;
 
-            if (ThrowGrenade(random))
+            if (CanThrowGrenade(random))
             {
                 soldier.TakeDamage(grenadeDamage);
                 Console.WriteLine($"{Name} бросил гранату");
@@ -324,7 +331,7 @@
             base.Attack(soldier);
         }
 
-        private bool ThrowGrenade(Random random)
+        private bool CanThrowGrenade(Random random)
         {
             int chance = 20;
             int number = random.Next(1, 100);
@@ -335,24 +342,26 @@
 
     class Scout : Soldier
     {
+        private int _chance = 30;
+        private int _selfHealing = 40;
+        private int _counterAttackDamage = 50;
+
         public Scout() : base(100)
         {
             Name = "Разведчик";
             Damage = 30;
-            Spell = "Шанс 30% восстановить 40 хп и контратаковать в ответ, нанеся 50 ед. урона";
+            Spell = "Шанс" + _chance + "% восстановить" + _selfHealing + "хп и контратаковать в ответ, нанеся" + _counterAttackDamage+ "ед. урона";
         }
 
         public override void Attack(Soldier soldier)
         {
             Random random = new();
-            int counterAttackDamage = 50;
-            int selfHealing = 40;
 
             if (CounterAttack(random))
             {
-                Heal(selfHealing);
-                soldier.TakeDamage(counterAttackDamage);
-                Console.WriteLine($"{Name} восстановил хp и контратаковал в ответ");
+                TakeHeal(_selfHealing);
+                soldier.TakeDamage(_counterAttackDamage);
+                Console.WriteLine($"{Name} восстановил хп и контратаковал в ответ");
             }
 
             base.Attack(soldier);
@@ -381,7 +390,7 @@
 
             foreach(Soldier soldier in soldiers)
             {
-                soldier.Heal(healthRecover);
+                soldier.TakeHeal(healthRecover);
             }
 
             Console.WriteLine($"Исцелил союзника");
