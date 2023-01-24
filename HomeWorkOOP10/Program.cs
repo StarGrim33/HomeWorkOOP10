@@ -16,7 +16,7 @@
         public void Run()
         {
             const string CommandStartBattle = "1";
-            const string CommandExit = "3";
+            const string CommandExit = "2";
 
             Console.WriteLine($"Приветствуем Вас на поле боя!\n");
             Console.WriteLine($"{CommandStartBattle}-Начать бой");
