@@ -5,18 +5,18 @@
         static void Main(string[] args)
         {
             Battlefield battlefield = new();
-            Army army = new();
-            battlefield.Run(army);
+            battlefield.Run();
         }
     }
 
     class Battlefield
     {
-        private ArmyBuilder _armyBuilder = new ArmyBuilder();
+        private ArmyBuilder _armyBuilder = new();
         private Army? _firstArmy = null;
         private Army? _secondArmy = null;
+        private Army? _army;
 
-        public void Run(Army army)
+        public void Run()
         {
             const string CommandStartBattle = "1";
             const string CommandExit = "2";
@@ -33,7 +33,7 @@
                 switch (userInput)
                 {
                     case CommandStartBattle:
-                        StartBattle(army);
+                        Battle();
                         isProgramOn = false;
                         break;
 
@@ -48,24 +48,20 @@
             }
         }
 
-        private void StartBattle(Army army)
+        private void CreateArmies()
         {
-            while(_firstArmy == null && _secondArmy == null)
+            while (_firstArmy == null || _secondArmy == null)
             {
-                if(FormArmy(out army))
+                if (FormArmy(out _army))
                 {
-                    _firstArmy = army;
+                    _firstArmy = _army;
                 }
 
-                if(FormArmy(out army))
+                if (FormArmy(out _army))
                 {
-                    _secondArmy = army;
+                    _secondArmy = _army;
                 }
             }
-
-            ShowArmies();
-            ToBattle();
-            DetermineTheWinner();
         }
 
         private bool FormArmy(out Army army)
@@ -77,10 +73,10 @@
 
             bool isNumber = int.TryParse(Console.ReadLine(), out int maxSoldiers);
 
-            if(isNumber)
+            if (isNumber)
             {
                 Console.WriteLine("Введите название армии");
-                name = Console.ReadLine(); 
+                name = Console.ReadLine();
 
                 army = _armyBuilder.Build(maxSoldiers, name);
                 return true;
@@ -89,7 +85,7 @@
             return false;
         }
 
-        private void DetermineTheWinner()
+        private void DetermineWinner()
         {
             if (_firstArmy.HasAliveSoldiers)
             {
@@ -120,16 +116,19 @@
             Console.ReadKey();
         }
 
-        private void ToBattle()
+        private void Battle()
         {
+            CreateArmies();
+            ShowArmies();
+
             while (_firstArmy.HasAliveSoldiers && _secondArmy.HasAliveSoldiers)
             {
-                _firstArmy.ToAttack(_secondArmy);
-                _secondArmy.ToAttack(_firstArmy);
+                _firstArmy.Attack(_secondArmy);
+                _secondArmy.Attack(_firstArmy);
                 _firstArmy.RemoveDead();
                 _secondArmy.RemoveDead();
-                _firstArmy.ToHeal();
-                _secondArmy.ToHeal();
+                _firstArmy.Heal();
+                _secondArmy.Heal();
 
                 Console.Clear();
 
@@ -138,6 +137,8 @@
 
                 Console.ReadKey();
             }
+
+            DetermineWinner();
         }
     }
 
@@ -152,9 +153,7 @@
             _soldiers = soldiers;
         }
 
-        public Army()
-        {
-        }
+        public Army() { }
 
         public string Name { get; }
         public bool HasAliveSoldiers => _soldiers.Count > 0;
@@ -170,7 +169,7 @@
             }
         }
 
-        public void ToAttack(Army army)
+        public void Attack(Army army)
         {
             var soldier = GetRandomSoldier();
 
@@ -193,23 +192,24 @@
             if (soldier == null)
                 return;
 
-            enemy.ToAttack(soldier);
+            enemy.Attack(soldier);
         }
 
-        public void ToHeal()
+        public void Heal()
         {
-            foreach(Soldier soldier in _soldiers)
+            foreach (Soldier soldier in _soldiers)
             {
-                if(soldier is Medic medic)
+                if (soldier is Medic medic) 
                 {
-                    medic.ToHealSoldiers(_soldiers);
+                    medic.Heal(_soldiers);
+                    Console.WriteLine($"Исцелил союзника");
                 }
             }
         }
 
         public void RemoveDead()
         {
-            for(int i = _soldiers.Count - 1; i >= 0; i--)
+            for (int i = _soldiers.Count - 1; i >= 0; i--)
             {
                 if (_soldiers[i].Health < 0)
                 {
@@ -223,7 +223,7 @@
     {
         public Army Build(int soldiersCount, string name)
         {
-            List<Soldier> soldiers = new List<Soldier>();
+            List<Soldier> soldiers = new();
 
             for (int i = 0; i < soldiersCount; i++)
             {
@@ -250,7 +250,7 @@
             Random random = new Random();
             var soldiers = CreateSoldiers();
             int randomIndex = random.Next(soldiers.Count);
-            return soldiers[randomIndex];      
+            return soldiers[randomIndex];
         }
     }
 
@@ -269,7 +269,7 @@
         public int Damage { get; protected set; } = 25;
         public string Spell { get; protected set; } = " ";
 
-        public virtual void ToAttack(Soldier soldier)
+        public virtual void Attack(Soldier soldier)
         {
             soldier.TakeDamage(Damage);
         }
@@ -288,7 +288,7 @@
         {
             Health += health;
 
-            if(Health > _maxHealth)
+            if (Health > _maxHealth)
             {
                 Health = _maxHealth;
             }
@@ -306,7 +306,7 @@
             Spell = "Каждый третий выстрел наносит двойной урон противнику";
         }
 
-        public override void ToAttack(Soldier soldier)
+        public override void Attack(Soldier soldier)
         {
             int criticalDamage = 60;
             int criticalAttackNumber = 3;
@@ -319,7 +319,7 @@
                 _attackCount = 0;
             }
 
-            base.ToAttack(soldier);
+            base.Attack(soldier);
         }
     }
 
@@ -334,7 +334,7 @@
             Spell = "С вероятностью" + _chance + "% наносит двойной урон противнику";
         }
 
-        public override void ToAttack(Soldier soldier)
+        public override void Attack(Soldier soldier)
         {
             Random random = new();
             int criticalDamage = 80;
@@ -345,7 +345,7 @@
                 Console.WriteLine($"{Name} осуществил минометный обстрел!");
             }
 
-            base.ToAttack(soldier);
+            base.Attack(soldier);
         }
 
         private bool DoMortarAttack(Random random)
@@ -370,7 +370,7 @@
             Spell = "С вероятностью" + _chance + "% кидает гранату, которая наносит 60 ед. урона";
         }
 
-        public override void ToAttack(Soldier soldier)
+        public override void Attack(Soldier soldier)
         {
             Random random = new();
             int grenadeDamage = 60;
@@ -381,7 +381,7 @@
                 Console.WriteLine($"{Name} бросил гранату");
             }
 
-            base.ToAttack(soldier);
+            base.Attack(soldier);
         }
 
         private bool CanThrowGrenade(Random random)
@@ -405,24 +405,24 @@
         {
             Name = "Разведчик";
             Damage = 30;
-            Spell = "Шанс" + _chance + "% восстановить" + _selfHealing + "хп и контратаковать в ответ, нанеся" + _counterAttackDamage+ "ед. урона";
+            Spell = "Шанс" + _chance + "% восстановить" + _selfHealing + "хп и контратаковать в ответ, нанеся" + _counterAttackDamage + "ед. урона";
         }
 
-        public override void ToAttack(Soldier soldier)
+        public override void Attack(Soldier soldier)
         {
             Random random = new();
 
-            if (ToCounterAttack(random))
+            if (CounterAttack(random))
             {
                 TakeHeal(_selfHealing);
                 soldier.TakeDamage(_counterAttackDamage);
                 Console.WriteLine($"{Name} восстановил хп и контратаковал в ответ");
             }
 
-            base.ToAttack(soldier);
+            base.Attack(soldier);
         }
 
-        private bool ToCounterAttack(Random random)
+        private bool CounterAttack(Random random)
         {
             int minNumber = 1;
             int maxNumber = 100;
@@ -441,16 +441,14 @@
             Damage = 20;
         }
 
-        public void ToHealSoldiers(List<Soldier> soldiers)
+        public void Heal(List<Soldier> soldiers)
         {
             int healthRecover = 10;
 
-            foreach(Soldier soldier in soldiers)
+            foreach (Soldier soldier in soldiers)
             {
                 soldier.TakeHeal(healthRecover);
             }
-
-            Console.WriteLine($"Исцелил союзника");
         }
     }
 }
