@@ -150,7 +150,7 @@
 
     class Army
     {
-        private static Random _random = new Random();
+        private static Random _random = new();
         private readonly List<Soldier> _soldiers;
 
         public Army(string name, List<Soldier> soldiers)
