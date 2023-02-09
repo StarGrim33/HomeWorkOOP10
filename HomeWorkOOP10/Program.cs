@@ -14,7 +14,6 @@
         private ArmyBuilder _armyBuilder = new();
         private Army? _firstArmy = null;
         private Army? _secondArmy = null;
-        private Army? _army;
 
         public void Run()
         {
@@ -50,39 +49,46 @@
 
         private void CreateArmies()
         {
-            while (_firstArmy == null || _secondArmy == null)
+            if (IsArmyFormed(out Army? _army))
             {
-                if (FormArmy(out _army))
-                {
-                    _firstArmy = _army;
-                }
+                _firstArmy = _army;
+            }
 
-                if (FormArmy(out _army))
-                {
-                    _secondArmy = _army;
-                }
+            if (IsArmyFormed(out _army))
+            {
+                _secondArmy = _army;
             }
         }
 
-        private bool FormArmy(out Army army)
+        private bool IsArmyFormed(out Army? army)
         {
             army = null;
-            string? name;
 
-            Console.WriteLine("Введите максимальное количество солдат: ");
-
-            bool isNumber = int.TryParse(Console.ReadLine(), out int maxSoldiers);
-
-            if (isNumber)
+            while (army == null)
             {
-                Console.WriteLine("Введите название армии");
-                name = Console.ReadLine();
+                Console.WriteLine("Введите максимальное количество солдат: ");
 
-                army = _armyBuilder.Build(maxSoldiers, name);
-                return true;
+                bool isNumber = int.TryParse(Console.ReadLine(), out int maxSoldiers);
+
+                if (isNumber)
+                {
+                    Console.WriteLine("Введите название армии");
+                    string? name = Console.ReadLine();
+
+                    if(string.IsNullOrEmpty(name))
+                    {
+                        Console.WriteLine("Введите название армии");
+                        Console.ReadKey();
+                    }
+                    else
+                    {
+                        army = _armyBuilder.Build(maxSoldiers, name);
+                        return true;
+                    } 
+                }
             }
 
-            return false;
+            return army != null;
         }
 
         private void DetermineWinner()
@@ -175,16 +181,8 @@
 
             for (int i = 0; i < _soldiers.Count; i++)
             {
-                army.TakeDamage(_soldiers[i], soldier);
+                army.TakeDamage(soldier, _soldiers[i]);
             }
-        }
-
-        private Soldier GetRandomSoldier()
-        {
-            if (_soldiers.Count == 0)
-                return null;
-
-            return _soldiers[_random.Next(_soldiers.Count)];
         }
 
         public void TakeDamage(Soldier enemy, Soldier soldier)
@@ -199,7 +197,7 @@
         {
             foreach (Soldier soldier in _soldiers)
             {
-                if (soldier is Medic medic) 
+                if (soldier is Medic medic)
                 {
                     medic.Heal(_soldiers);
                     Console.WriteLine($"Исцелил союзника");
@@ -216,6 +214,14 @@
                     _soldiers.RemoveAt(i);
                 }
             }
+        }
+
+        private Soldier GetRandomSoldier()
+        {
+            if (_soldiers.Count == 0)
+                return null;
+
+            return _soldiers[_random.Next(_soldiers.Count)];
         }
     }
 
@@ -325,13 +331,13 @@
 
     class MortarMan : Soldier
     {
-        private int _chance = 15;
+        private const int Chance = 15;
 
         public MortarMan() : base(60)
         {
             Name = "Минометчик";
             Damage = 40;
-            Spell = "С вероятностью" + _chance + "% наносит двойной урон противнику";
+            Spell = "С вероятностью" + Chance + "% наносит двойной урон противнику";
         }
 
         public override void Attack(Soldier soldier)
@@ -361,13 +367,13 @@
 
     class Stormtrooper : Soldier
     {
-        private int _chance = 20;
+        private const int Chance = 20;
 
         public Stormtrooper() : base(130)
         {
             Name = "Штурмовик";
             Damage = 25;
-            Spell = "С вероятностью" + _chance + "% кидает гранату, которая наносит 60 ед. урона";
+            Spell = "С вероятностью" + Chance + "% кидает гранату, которая наносит 60 ед. урона";
         }
 
         public override void Attack(Soldier soldier)
