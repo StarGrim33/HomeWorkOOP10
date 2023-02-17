@@ -75,7 +75,7 @@
                     Console.WriteLine("Введите название армии");
                     string? name = Console.ReadLine();
 
-                    if(string.IsNullOrEmpty(name))
+                    if (string.IsNullOrEmpty(name))
                     {
                         Console.WriteLine("Введите название армии");
                         Console.ReadKey();
@@ -84,7 +84,7 @@
                     {
                         army = _armyBuilder.Build(maxSoldiers, name);
                         return true;
-                    } 
+                    }
                 }
             }
 
@@ -130,9 +130,9 @@
             while (_firstArmy.HasAliveSoldiers && _secondArmy.HasAliveSoldiers)
             {
                 _firstArmy.Attack(_secondArmy);
+                _secondArmy.RemoveDead();
                 _secondArmy.Attack(_firstArmy);
                 _firstArmy.RemoveDead();
-                _secondArmy.RemoveDead();
                 _firstArmy.Heal();
                 _secondArmy.Heal();
 
@@ -177,20 +177,13 @@
 
         public void Attack(Army army)
         {
-            var soldier = GetRandomSoldier();
-
-            for (int i = 0; i < _soldiers.Count; i++)
+            if (HasAliveSoldiers)
             {
-                army.TakeDamage(soldier, _soldiers[i]);
+                var soldier = GetRandomSoldier();
+                var enemy = army.GetRandomSoldier();
+
+                enemy.TakeDamage(soldier.Damage);
             }
-        }
-
-        public void TakeDamage(Soldier enemy, Soldier soldier)
-        {
-            if (soldier == null)
-                return;
-
-            enemy.Attack(soldier);
         }
 
         public void Heal()
@@ -207,22 +200,17 @@
 
         public void RemoveDead()
         {
-            for (int i = _soldiers.Count - 1; i >= 0; i--)
+            for (int i = 0; i < _soldiers.Count; i++)
             {
-                if (_soldiers[i].Health < 0)
+                if (_soldiers[i].Health <= 0)
                 {
                     _soldiers.RemoveAt(i);
+                    i--;
                 }
             }
         }
 
-        private Soldier GetRandomSoldier()
-        {
-            if (_soldiers.Count == 0)
-                return null;
-
-            return _soldiers[_random.Next(_soldiers.Count)];
-        }
+        private Soldier GetRandomSoldier() => _soldiers[_random.Next(_soldiers.Count)];
     }
 
     class ArmyBuilder
@@ -345,7 +333,7 @@
             Random random = new();
             int criticalDamage = 80;
 
-            if (DoMortarAttack(random))
+            if (AttackWithMortar(random))
             {
                 soldier.TakeDamage(criticalDamage);
                 Console.WriteLine($"{Name} осуществил минометный обстрел!");
@@ -354,7 +342,7 @@
             base.Attack(soldier);
         }
 
-        private bool DoMortarAttack(Random random)
+        private bool AttackWithMortar(Random random)
         {
             int minNumber = 1;
             int maxNumber = 100;
@@ -449,7 +437,7 @@
 
         public void Heal(List<Soldier> soldiers)
         {
-            int healthRecover = 10;
+            int healthRecover = 0;
 
             foreach (Soldier soldier in soldiers)
             {
